@@ -1,67 +1,74 @@
 _menuPool = NativeUI.CreatePool()
-mainMenu = NativeUI.CreateMenu("Main menu", "~b~this is the description")
+mainMenu = NativeUI.CreateMenu("Main Menu", "~b~Menu test description")
 _menuPool:Add(mainMenu)
 
+-- Used in "FirstMenu"
 bool = false
+
+-- this menu is a checkbox item
 function FirstItem(menu)
-    local checkbox = NativeUI.CreateCheckboxItem("Click Me", bool, "Toggle this item")
-    menu:AddItem(checkbox)
-    menu.OnCheckBoxChange = function(sender, item, checked_)
-        if item == checkbox then
-            bool = checked_
-            notify(tostring(bool))
-        end
-    end
+   local checkbox = NativeUI.CreateCheckboxItem("Click me", bool, "Toggle this item")
+   menu:AddItem(checkbox)
+   menu.OnCheckboxChange = function (sender, item, checked_)
+      -- check if what changed is from this menu
+      if item == checkbox then
+        bool = checked_
+        --[[ Outputs what the checkbox state is ]]
+        notify(tostring(bool))
+      end
+   end
 end
 
-function SecondItem(menu)
-    local click = NativeUI.CreateItem("Heal", "~g~Heal yourself")
+function SecondItem(menu) 
+    local click = NativeUI.CreateItem("Heal me", "~g~Heal yourself")
     menu:AddItem(click)
-    menu.OnItemSelect = function(sender,item,index)
+    menu.OnItemSelect = function(sender, item, index)
         if item == click then
             SetEntityHealth(PlayerPedId(), 200)
-            notify("~g~Healed...")
+            notify("~g~Healed.")
         end
     end
 end
 
+
+-- Used in "ThirdItem"
 weapons = {
     "weapon_sniperrifle",
     "weapon_pistol",
     "weapon_rpg"
 }
-
 function ThirdItem(menu)
-    local gunList = NativeUI.CreateListItem("Get Guns", weapons, 1)
-    menu:AddItem(gunList)
-    menu.onListSelect = function(sender,item,index)
-        if item == gunList then
+    local gunsList = NativeUI.CreateListItem("Get Guns", weapons, 1)
+    menu:AddItem(gunsList)
+    menu.OnListSelect = function(sender, item, index)  
+        if item == gunsList then
             local selectedGun = item:IndexToItem(index)
             giveWeapon(selectedGun)
-            notify("Spawned in a ~b~".. selectedGun)
+            notify("spawned in a "..selectedGun)
         end
     end
 end
-
+-- used in "FourthItem"
 seats = {-1,0,1,2}
-function FourthItem(menu)
-    local submenu = _menuPool:AddSubMenu(menu, "~b~Sub Menu")
-    local carItem = NativeUI.CreateItem("Spawn car", "Spawn a car in a sub menu")
-    carItem.Activated = function(sender,item)
+function FourthItem(menu) 
+   local submenu = _menuPool:AddSubMenu(menu, "~b~Sub Menu") 
+   local carItem = NativeUI.CreateItem("Spawn car", "Spawn car in a submenu")
+   carItem.Activated = function(sender, item)
         if item == carItem then
-            spawnCar("valkyrie")
+            spawnCar("adder")
+            notify("spawned in an adder")
         end
-    end    
-    local seat = NativeUI.CreateSliderItem("Change Seat", seats, 1)
-    submenu.OnSliderChange = function (sender,item,index)
+   end
+   local seat = NativeUI.CreateSliderItem("Change seat", seats, 1)
+    submenu.OnSliderChange = function(sender, item, index)
         if item == seat then
             vehSeat = item:IndexToItem(index)
-            local pedCar = GetVehiclePedIsIn(GetPlayerPed(-1), false)
-            setPedIntoVehicle(PlayerPedId(), pedCar, vehSeat)
+            local pedsCar = GetVehiclePedIsIn(GetPlayerPed(-1),false)
+            SetPedIntoVehicle(PlayerPedId(), pedsCar, vehSeat)
         end
     end
-    submenu:AddItem(carItem)
-    submenu:AddItem(seat)
+   submenu.SubMenu:AddItem(carItem)
+   submenu.SubMenu:AddItem(seat)
 end
 
 FirstItem(mainMenu)
@@ -74,12 +81,17 @@ Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
         _menuPool:ProcessMenus()
-        if IsControlJustPressed(1,51) then
+        --[[ The "e" button will activate the menu ]]
+        if IsControlJustPressed(1, 51) then
             mainMenu:Visible(not mainMenu:Visible())
         end
     end
-
 end)
+
+
+
+
+--[[ COPY BELOW ]]
 
 function notify(text)
     SetNotificationTextEntry("STRING")
@@ -107,4 +119,5 @@ function spawnCar(car)
     SetEntityAsNoLongerNeeded(vehicle)
     SetModelAsNoLongerNeeded(vehicleName)
     
+    --[[ SetEntityAsMissionEntity(vehicle, true, true) ]]
 end

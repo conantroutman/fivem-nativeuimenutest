@@ -1,97 +1,149 @@
+player = PlayerId()
 _menuPool = NativeUI.CreatePool()
-mainMenu = NativeUI.CreateMenu("Main Menu", "~b~Menu test description")
-_menuPool:Add(mainMenu)
 
--- Used in "FirstMenu"
-bool = false
-
--- this menu is a checkbox item
-function FirstItem(menu)
-   local checkbox = NativeUI.CreateCheckboxItem("Click me", bool, "Toggle this item")
-   menu:AddItem(checkbox)
-   menu.OnCheckboxChange = function (sender, item, checked_)
-      -- check if what changed is from this menu
-      if item == checkbox then
-        bool = checked_
-        --[[ Outputs what the checkbox state is ]]
-        notify(tostring(bool))
-      end
-   end
-end
-
-function SecondItem(menu) 
-    local click = NativeUI.CreateItem("Heal me", "~g~Heal yourself")
-    menu:AddItem(click)
-    menu.OnItemSelect = function(sender, item, index)
-        if item == click then
-            SetEntityHealth(PlayerPedId(), 200)
-            notify("~g~Healed.")
-        end
-    end
-end
-
-
--- Used in "ThirdItem"
-weapons = {
-    "weapon_sniperrifle",
-    "weapon_pistol",
-    "weapon_rpg"
-}
-function ThirdItem(menu)
-    local gunsList = NativeUI.CreateListItem("Get Guns", weapons, 1)
-    menu:AddItem(gunsList)
+function AddMenuQuickGPS(menu)
+    locations = {
+        "None",
+        "Ammu-Nation",
+        "ATM",
+        "Barber Shop",
+        "Tattoo Parlor",
+        "Mod Shop",
+        "Clothes Store"
+    }
+    local locationsList = NativeUI.CreateListItem("Quick GPS", locations, 1)
+    menu:AddItem(locationsList)
     menu.OnListSelect = function(sender, item, index)  
-        if item == gunsList then
-            local selectedGun = item:IndexToItem(index)
-            giveWeapon(selectedGun)
-            notify("spawned in a "..selectedGun)
+        if item == locationsList then
+            local selectedLocation = item:IndexToItem(index)
+            SetNewWaypoint(365.425, 131.809)
         end
     end
-end
--- used in "FourthItem"
-seats = {-1,0,1,2}
-function FourthItem(menu) 
-   local submenu = _menuPool:AddSubMenu(menu, "~b~Sub Menu") 
-   local carItem = NativeUI.CreateItem("Spawn car", "Spawn car in a submenu")
-   carItem.Activated = function(sender, item)
-        if item == carItem then
-            spawnCar("adder")
-            notify("spawned in an adder")
-        end
-   end
-   local seat = NativeUI.CreateSliderItem("Change seat", seats, 1)
-    submenu.OnSliderChange = function(sender, item, index)
-        if item == seat then
-            vehSeat = item:IndexToItem(index)
-            local pedsCar = GetVehiclePedIsIn(GetPlayerPed(-1),false)
-            SetPedIntoVehicle(PlayerPedId(), pedsCar, vehSeat)
-        end
-    end
-   submenu.SubMenu:AddItem(carItem)
-   submenu.SubMenu:AddItem(seat)
 end
 
-FirstItem(mainMenu)
-SecondItem(mainMenu)
-ThirdItem(mainMenu)
-FourthItem(mainMenu)
-_menuPool:RefreshIndex()
+function AddMenuInventory(menu)
+    local inventorySubmenu = _menuPool:AddSubMenu(menu, "Inventory")
+end
+
+function AddMenuBodyArmor(menu)
+    local armorSubmenu = _menuPool:AddSubMenu(menu, "Body Armor") 
+    local armorItem1 = NativeUI.CreateItem("Super Light Armor", "Refill armor")
+    armorItem1.Activated = function(sender, item)
+         if item == armorItem1 then
+            giveBodyArmor(20, 10, 0)
+         end
+    end
+    local armorItem2 = NativeUI.CreateItem("Light Armor", "Refill armor")
+    armorItem2.Activated = function(sender, item)
+         if item == armorItem2 then
+            giveBodyArmor(40, 10, 4)
+         end
+    end
+    local armorItem3 = NativeUI.CreateItem("Standard Armor", "Refill armor")
+    armorItem3.Activated = function(sender, item)
+         if item == armorItem3 then
+            giveBodyArmor(60, 10, 1)
+         end
+    end
+    local armorItem4 = NativeUI.CreateItem("Heavy Armor", "Refill armor")
+    armorItem4.Activated = function(sender, item)
+         if item == armorItem4 then
+            giveBodyArmor(80, 10, 2)
+         end
+    end
+    local armorItem5 = NativeUI.CreateItem("Super Heavy Armor", "Refill armor")
+    armorItem5.Activated = function(sender, item)
+         if item == armorItem5 then
+            giveBodyArmor(100, 10, 3)
+         end
+    end
+    
+    armorSubmenu.SubMenu:AddItem(armorItem1)
+    armorSubmenu.SubMenu:AddItem(armorItem2)
+    armorSubmenu.SubMenu:AddItem(armorItem3)
+    armorSubmenu.SubMenu:AddItem(armorItem4)
+    armorSubmenu.SubMenu:AddItem(armorItem5)
+end
+
+function AddMenuVehicle(menu)
+    local vehicleSubmenu = _menuPool:AddSubMenu(menu, "Vehicle Controls") 
+    local loudRadioItem = NativeUI.CreateItem("Loud Radio", "Blast it")
+    loudRadioItem.Activated = function(sender, item)
+         if item == loudRadioItem then
+            if isVehicleRadioLoud then
+                SetVehicleRadioLoud(GetLastDrivenVehicle(), false)
+            else
+                SetVehicleRadioLoud(GetLastDrivenVehicle(), true)
+            end
+         end
+    end
+    vehicleSubmenu.SubMenu:AddItem(loudRadioItem)
+end
+
+function AddMenuSuicide(menu)
+    local click = NativeUI.CreateItem("Kill Yourself", "Commit suicide.")
+    menu:AddItem(click)
+    menu.OnItemSelect = function(sender, item)
+        if item == click then
+            SetEntityHealth(PlayerPedId(), 0)
+        end
+    end
+end
+
+function openInteractionMenu()
+    mainMenu = NativeUI.CreateMenu(GetPlayerName(PlayerId()), "~b~INTERACTION MENU")
+    --mainMenu = NativeUI.CreateMenu(GetPlayerName(PlayerId()), "~b~INTERACTION MENU", nil, nil, "casinoui_cards_three", "casinoui_cards_three", 1)
+    _menuPool:Add(mainMenu)
+    AddMenuQuickGPS(mainMenu)
+    AddMenuInventory(mainMenu)
+    AddMenuBodyArmor(mainMenu)
+    AddMenuVehicle(mainMenu)
+    AddMenuSuicide(mainMenu)
+    _menuPool:RefreshIndex()
+    mainMenu:Visible(not mainMenu:Visible())
+    _menuPool:MouseEdgeEnabled (false)
+end
 
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
         _menuPool:ProcessMenus()
-        --[[ The "e" button will activate the menu ]]
-        if IsControlJustPressed(1, 51) then
-            mainMenu:Visible(not mainMenu:Visible())
+        -- Open menu with M
+        if IsControlJustPressed(1, 244) then
+            openInteractionMenu()
         end
     end
 end)
 
+-----------------------------------------------------------------------------------------------------------------------
+-- FUNCTIONS
+-----------------------------------------------------------------------------------------------------------------------
 
+function test(menu)
+    armor = {
+        "Super Light Armor",
+        "Light Armor",
+        "Standard Armor",
+        "Heavy Armor",
+        "Super Heavy Armor"
+    }
+    armorList = NativeUI.CreateListItem("Show Armor", armor, 1)
+    menu.SubMenu:AddItem(armorList)
+end
 
-
---[[ COPY BELOW ]]
+function createArmorItem(menu, name, value, submenuCheck)
+    local armorItem = NativeUI.CreateItem(name, "Use a " .. name .. " to refill your armor bar. You can also choose to show or hide the " .. name)
+    armorItem.Activated = function(sender, item)
+         if item == armorItem then
+            giveBodyArmor(20)
+         end
+    end
+    if submenuCheck then
+        menu.SubMenu:AddItem(armorItem)
+    else
+        menu:AddItem(armorItem)
+    end
+end
 
 function notify(text)
     SetNotificationTextEntry("STRING")
@@ -101,6 +153,12 @@ end
 
 function giveWeapon(hash)
     GiveWeaponToPed(GetPlayerPed(-1), GetHashKey(hash), 999, false, true)
+end
+
+function giveBodyArmor(value, model, texture)
+    AddArmourToPed(PlayerPedId(), value)
+    SetPedComponentVariation(PlayerPedId(), 9, model, texture, 0)
+    notify(tostring(GetNumberOfPedDrawableVariations(PlayerPedId(), 9)))
 end
 
 function spawnCar(car)

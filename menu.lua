@@ -258,3 +258,10 @@ end
         --RequestAnimSet(animSet)
         --SetPedMovementClipset(GetPlayerPed(-1), animSet, 1.0)
 --end
+
+AddEventHandler("baseevents:onPlayerDied", function()
+    closeInteractionMenu()
+end)
+AddEventHandler("baseevents:onPlayerKilled", function()
+    closeInteractionMenu()
+end)

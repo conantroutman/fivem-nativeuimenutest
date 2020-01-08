@@ -11,18 +11,54 @@ function AddMenuQuickGPS(menu)
         "Mod Shop",
         "Clothes Store"
     }
+
+    modShops = {    
+        [0] = { x = -365.425, y = -131.809},
+        [1] = { x = 116.223, y = 6606.202}
+    }
     local locationsList = NativeUI.CreateListItem("Quick GPS", locations, 1)
     menu:AddItem(locationsList)
     menu.OnListSelect = function(sender, item, index)  
         if item == locationsList then
             local selectedLocation = item:IndexToItem(index)
-            SetNewWaypoint(365.425, 131.809)
+            SetNewWaypoint(modShops[1].x, modShops[1].y)
         end
     end
 end
 
 function AddMenuInventory(menu)
     local inventorySubmenu = _menuPool:AddSubMenu(menu, "Inventory")
+
+    local parachuteItem = NativeUI.CreateItem("Add Parachute", "")
+    parachuteItem.Activated = function(sender, item)
+         if item == parachuteItem then
+            giveWeapon("gadget_parachute")
+         end
+    end
+
+    local nightvisionItem = NativeUI.CreateItem("Add Nightvision", "")
+    nightvisionItem.Activated = function(sender, item)
+         if item == nightvisionItem then
+            giveWeapon("gadget_nightvision")
+         end
+    end
+
+    inventorySubmenu.SubMenu:AddItem(parachuteItem)
+    inventorySubmenu.SubMenu:AddItem(nightvisionItem)
+end
+
+function AddMenuStyle(menu)
+    local styleSubmenu = _menuPool:AddSubMenu(menu, "Style")
+
+    local movementItem = NativeUI.CreateItem("Walking Style", "")
+    movementItem.Activated = function(sender, item)
+         if item == movementItem then
+            --changePlayerMovement("MOVE_M@DRUNK@VERYDRUNK")
+            ReportCrime(PlayerId(), 44, 1)
+         end
+    end
+
+    styleSubmenu.SubMenu:AddItem(movementItem)
 end
 
 function AddMenuBodyArmor(menu)
@@ -66,8 +102,17 @@ function AddMenuBodyArmor(menu)
 end
 
 function AddMenuVehicle(menu)
-    local vehicleSubmenu = _menuPool:AddSubMenu(menu, "Vehicle Controls") 
+    local vehicleSubmenu = _menuPool:AddSubMenu(menu, "Vehicles") 
+    local requestVehicleItem = NativeUI.CreateItem("Request Vehicle", "")
+    local engineItem = NativeUI.CreateItem("Turn On Engine", "")
     local loudRadioItem = NativeUI.CreateItem("Loud Radio", "Blast it")
+    requestVehicleItem.Activated = function(sender, item)
+        spawnCar("deluxo")
+        closeInteractionMenu()
+    end
+    engineItem.Activated = function(sender, item)
+        SetVehicleEngineOn(GetLastDrivenVehicle(), true, true, true)
+    end
     loudRadioItem.Activated = function(sender, item)
          if item == loudRadioItem then
             if isVehicleRadioLoud then
@@ -77,7 +122,17 @@ function AddMenuVehicle(menu)
             end
          end
     end
+    vehicleSubmenu.SubMenu:AddItem(requestVehicleItem)
+    vehicleSubmenu.SubMenu:AddItem(engineItem)
     vehicleSubmenu.SubMenu:AddItem(loudRadioItem)
+end
+
+function AddMenuChallenges(menu)
+    local challengesSubmenu = _menuPool:AddSubMenu(menu, "Challenges") 
+    local huntingItem = NativeUI.CreateItem("Hunting", "Start a hunting challenge.")
+    local longestWheelieItem = NativeUI.CreateItem("Longest Wheelie", "Start a longest wheelie challenge.")
+    challengesSubmenu.SubMenu:AddItem(huntingItem)
+    challengesSubmenu.SubMenu:AddItem(longestWheelieItem)
 end
 
 function AddMenuSuicide(menu)
@@ -96,8 +151,10 @@ function openInteractionMenu()
     _menuPool:Add(mainMenu)
     AddMenuQuickGPS(mainMenu)
     AddMenuInventory(mainMenu)
+    AddMenuStyle(mainMenu)
     AddMenuBodyArmor(mainMenu)
     AddMenuVehicle(mainMenu)
+    AddMenuChallenges(mainMenu)
     AddMenuSuicide(mainMenu)
     _menuPool:RefreshIndex()
     mainMenu:Visible(not mainMenu:Visible())
@@ -171,11 +228,33 @@ function spawnCar(car)
     end
 
     local x, y, z = table.unpack(GetEntityCoords(PlayerPedId(), false))
-    local vehicle = CreateVehicle(car, x + 2, y + 2, z + 1, GetEntityHeading(PlayerPedId()), true, false)
-    SetPedIntoVehicle(PlayerPedId(), vehicle, -1)
+    --Find road
+    local chk, pos, heading = GetNthClosestVehicleNodeWithHeading(x, y, z, 10, 9, 3.0, 2.5)
+    local vx, vy, vz = table.unpack(pos)
+    --Find roadside
+    local chck2, pos2 = GetPointOnRoadSide(vx, vy, vz, 1)
+    local x2, y2, z2 = table.unpack(pos2)
+    local vehicle = CreateVehicle(car, x2, y2, z2, heading, true, false)
+    --SetPedIntoVehicle(PlayerPedId(), vehicle, -1)
+
+    local blip = AddBlipForEntity(vehicle)
+    SetBlipSprite(blip, 225)
+	SetBlipFlashes(blip, true)
+    SetBlipFlashTimer(blip, 5000)
+    SetBlipNameFromTextFile(blip, GetDisplayNameFromVehicleModel(car))
     
     SetEntityAsNoLongerNeeded(vehicle)
     SetModelAsNoLongerNeeded(vehicleName)
     
     --[[ SetEntityAsMissionEntity(vehicle, true, true) ]]
 end
+
+function closeInteractionMenu()
+    _menuPool:CloseAllMenus()
+end
+
+--function changePlayerMovement(animSet)
+    --if not HasAnimSetLoaded(animSet) then
+        --RequestAnimSet(animSet)
+        --SetPedMovementClipset(GetPlayerPed(-1), animSet, 1.0)
+--end

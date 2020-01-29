@@ -9,25 +9,66 @@ function AddMenuQuickGPS(menu)
         "Barber Shop",
         "Tattoo Parlor",
         "Mod Shop",
-        "Clothes Store"
+        "Clothes Store",
+        "Airfield"
     }
 
     modShops = {    
-        [0] = { x = -365.425, y = -131.809},
-        [1] = { x = 116.223, y = 6606.202}
+        { x = -365.425, y = -131.809, z = 37.873},
+        { x = -1126.225, y = -1993.027, z = 0},
+        { x = 716.413, y = -1078.057, z = 0},
+        --Beeker's Garage
+        { x = 116.22, y = 6606.20, z = 31.46},
+        --Benny's Garage
+        { x = -196.35, y = -1303.1, z = 30.65},
     }
-    local locationsList = NativeUI.CreateListItem("Quick GPS", locations, 1)
+
+    ATMs = {
+        {x = 147.66, y = -1035.75, z = 29.34},
+        {x = 146.0, y = -1035.04, z = 29.34},
+        {x = 296.41, y = -894.11, z = 29.23},
+        {x = 295.71, y = -896.02, z = 29.21},
+        {x = 114.46, y = -776.47, z = 31.42},
+        {x = 111.28, y = -775.3, z = 31.44},
+        {x = 112.54, y = -819.28, z = 31.34},
+        {x = -254.36, y = -692.36, z = 33.61},
+        {x = -256.18, y = -715.99, z = 33.52},
+        {x = -203.91, y = -861.41, z = 19.96},
+        {x = -2072.46, y = -317.24, z = 263.27},
+        {x = -2975.05, y = 380.19, z = 15.0},
+        {x = -3144.29, y = 1127.56, z = 65.1},
+        {x = -165.07, y = 232.81, z = 94.92},
+        {x = -165.14, y = 234.81, z = 94.92},
+    }
+
+    airfields = {    
+        {x = -1070.90, y = -2972.12, z = 13.77},
+        {x = 1682.19, y = 3279.98, z = 40.64},
+        {x = 2124.62, y = 4805.27, z = 40.47}
+    }
+
+    local locationsList = NativeUI.CreateListItem("Quick GPS", locations, 1, "Select to place your waypoint at a set location.")
     menu:AddItem(locationsList)
     menu.OnListSelect = function(sender, item, index)  
         if item == locationsList then
-            local selectedLocation = item:IndexToItem(index)
-            SetNewWaypoint(modShops[1].x, modShops[1].y)
+            --None
+            if index == 1 then
+                DeleteWaypoint()
+            --ATM
+            elseif index == 3 then
+                SetQuickGPS(ATMs)
+            --Mod Shop
+            elseif index == 6 then
+                SetQuickGPS(modShops)
+            elseif index == 8 then
+                SetQuickGPS(airfields)
+            end
         end
     end
 end
 
 function AddMenuInventory(menu)
-    local inventorySubmenu = _menuPool:AddSubMenu(menu, "Inventory")
+    local inventorySubmenu = _menuPool:AddSubMenu(menu, "Inventory", "Your Inventory contains carried items such as cash, weapon ammo and snacks.")
 
     local parachuteItem = NativeUI.CreateItem("Add Parachute", "")
     parachuteItem.Activated = function(sender, item)
@@ -62,7 +103,7 @@ function AddMenuStyle(menu)
 end
 
 function AddMenuBodyArmor(menu)
-    local armorSubmenu = _menuPool:AddSubMenu(menu, "Body Armor") 
+    local armorSubmenu = _menuPool:AddSubMenu(menu, "Body Armor", "Use body armor or simply change your look by selecting what body armor to wear.") 
     local armorItem1 = NativeUI.CreateItem("Super Light Armor", "Refill armor")
     armorItem1.Activated = function(sender, item)
          if item == armorItem1 then
@@ -107,7 +148,7 @@ function AddMenuVehicle(menu)
     local engineItem = NativeUI.CreateItem("Turn On Engine", "")
     local loudRadioItem = NativeUI.CreateItem("Loud Radio", "Blast it")
     requestVehicleItem.Activated = function(sender, item)
-        spawnCar("deluxo")
+        spawnCar("s230")
         closeInteractionMenu()
     end
     engineItem.Activated = function(sender, item)
@@ -128,9 +169,11 @@ function AddMenuVehicle(menu)
 end
 
 function AddMenuChallenges(menu)
-    local challengesSubmenu = _menuPool:AddSubMenu(menu, "Challenges") 
+    local challengesSubmenu = _menuPool:AddSubMenu(menu, "Challenges")
+    local carmageddonItem = NativeUI.CreateItem("Carmageddon", "Start a Carmageddon challenge.")
     local huntingItem = NativeUI.CreateItem("Hunting", "Start a hunting challenge.")
     local longestWheelieItem = NativeUI.CreateItem("Longest Wheelie", "Start a longest wheelie challenge.")
+    local longestStoppieItem = NativeUI.CreateItem("Longest Stoppie", "Start a longest stoppie challenge.")
     challengesSubmenu.SubMenu:AddItem(huntingItem)
     challengesSubmenu.SubMenu:AddItem(longestWheelieItem)
 end
@@ -140,7 +183,7 @@ function AddMenuSuicide(menu)
     menu:AddItem(click)
     menu.OnItemSelect = function(sender, item)
         if item == click then
-            SetEntityHealth(PlayerPedId(), 0)
+            CommitSuicide()
         end
     end
 end
@@ -166,7 +209,7 @@ Citizen.CreateThread(function()
         Citizen.Wait(0)
         _menuPool:ProcessMenus()
         -- Open menu with M
-        if IsControlJustPressed(1, 244) then
+        if IsControlJustPressed(1, 244) and not IsPlayerDead(PlayerId()) then
             openInteractionMenu()
         end
     end
@@ -265,3 +308,98 @@ end)
 AddEventHandler("baseevents:onPlayerKilled", function()
     closeInteractionMenu()
 end)
+
+
+-- SetQuickGPS - Calculate the closest of a set of coordinates and set a waypoint there
+function SetQuickGPS(locations)
+    local x, y, z = table.unpack(GetEntityCoords(PlayerPedId(), false))
+    local x2, y2, z2
+    local temp = {}
+
+    for i, location in ipairs(locations) do
+         x2 = location.x
+         y2 = location.y
+         z2 = location.z
+        table.insert(temp, CalculateTravelDistanceBetweenPoints(x, y, z, x2, y2, z2))
+    end
+
+    local key = next(temp)
+    local min = temp[key]
+
+    for k, v in pairs(temp) do
+        if temp[k] < min then
+            key, min = k, v
+        end
+    end
+
+    SetNewWaypoint(locations[key].x, locations[key].y)
+end
+
+function HasPlayerEquippedPistol()
+    local pistols = {
+        "weapon_pistol",
+        "weapon_pistol_mk2",
+        "weapon_combatpistol",
+        "weapon_appistol",
+        "weapon_pistol50",
+        "weapon_snspistol",
+        "weapon_snspistol_mk2",
+        "weapon_heavypistol",
+        "weapon_vintagepistol",
+        "weapon_marksmanpistol",
+        "weapon_revolver",
+        "weapon_revolver_mk2",
+        "weapon_doubleaction",
+        "weapon_raypistol",
+        "weapon_ceramicpistol",
+        "weapon_navyrevolver",
+    }
+    for i, pistol in ipairs(pistols) do
+        if select(2, GetCurrentPedWeapon(PlayerPedId(), 1)) == GetHashKey(pistol) then
+            return true
+        end
+    end
+    return false
+end
+
+function CommitSuicide()
+    if not IsPedInAnyVehicle(PlayerPedId(), true) then
+        --Load suicide animations
+        if not HasAnimDictLoaded("mp_suicide") then
+            RequestAnimDict("mp_suicide");
+            Wait(200)
+        end
+
+        --Check if the player has a pistol currently equipped
+        if HasPlayerEquippedPistol() then
+            SetPedDropsWeaponsWhenDead(PlayerPedId(), true)
+            ClearPedTasks(PlayerPedId())
+            TaskPlayAnim(PlayerPedId(), "MP_SUICIDE", "pistol", 8.0, -8.0, -1, 270540800, 0, false, false, false)
+            --if HasAnimEventFired(PlayerPedId(), GetHashKey("Fire")) then
+            local fire = false
+            while not fire do
+                Citizen.Wait(0)
+                if HasAnimEventFired(PlayerPedId(), GetHashKey("Fire")) then
+                    ClearEntityLastDamageEntity(PlayerPedId())
+                    SetPedShootsAtCoord(PlayerPedId(), 0.0, 0.0, 0.0, false)
+                    Wait(100)
+                    SetEntityHealth(PlayerPedId(), 0)
+                    fire = true
+                end
+            end
+        else
+            SetCurrentPedWeapon(PlayerPedId(), GetHashKey("weapon_unarmed"), true)
+            ClearPedTasks(PlayerPedId())
+            TaskPlayAnim(PlayerPedId(), "MP_SUICIDE", "pill", 8.0, -8.0, -1, 270540800, 0, false, false, false)
+            --Wait until the player has swallowed the pill
+            Wait(4000)
+            ClearEntityLastDamageEntity(PlayerPedId())
+            SetEntityHealth(PlayerPedId(), 0)
+        end
+        RemoveAnimDict("mp_suicide")
+    --If the player is in a vehicle we can't play the animation, so just kill the player
+    else
+        SetEntityHealth(PlayerPedId(), 0)
+    end
+    closeInteractionMenu()
+end
